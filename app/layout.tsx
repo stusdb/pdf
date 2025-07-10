@@ -1,20 +1,21 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { BottomNavigation } from "@/components/bottom-navigation"
-import { LanguageSwitcher } from "@/components/language-switcher"
-import { LanguageProvider } from "@/contexts/language-context"
-import { FavoritesProvider } from "@/contexts/favorites-context"
-
-const inter = Inter({ subsets: ["latin"] })
+import ClientLayout from "./client-layout"
 
 export const metadata: Metadata = {
-  title: "Vinmax - Movie Streaming App",
-  description: "Professional movie streaming application with dark theme",
+  title: "Vinmax - أفضل منصة لمشاهدة الأفلام",
+  description: "منصة احترافية لمشاهدة الأفلام والمسلسلات بجودة عالية مع دعم اللغة العربية",
   manifest: "/manifest.json",
-  themeColor: "#111827",
+  themeColor: "#ff6b35",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  keywords: "أفلام, مسلسلات, مشاهدة, ترفيه, سينما, movies, streaming, entertainment",
+  authors: [{ name: "Vinmax Team" }],
+  openGraph: {
+    title: "Vinmax - أفضل منصة لمشاهدة الأفلام",
+    description: "اكتشف واستمتع بأحدث الأفلام والمسلسلات على منصتنا الاحترافية",
+    type: "website",
+    locale: "ar_SA",
+  },
     generator: 'v0.dev'
 }
 
@@ -23,27 +24,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <html lang="en">
-      <body className={`${inter.className} bg-gray-950`}>
-        <LanguageProvider>
-          <FavoritesProvider>
-            {/* Top Bar */}
-            <header className="sticky top-0 z-50 bg-gray-950/80 backdrop-blur-sm border-b border-gray-800">
-              <div className="flex items-center justify-between p-4">
-                <h1 className="text-2xl font-bold text-white">Vinmax</h1>
-                <LanguageSwitcher />
-              </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="pb-20">{children}</main>
-
-            {/* Bottom Navigation */}
-            <BottomNavigation />
-          </FavoritesProvider>
-        </LanguageProvider>
-      </body>
-    </html>
-  )
+  return <ClientLayout>{children}</ClientLayout>
 }
+
+
+import './globals.css'

@@ -5,6 +5,7 @@ export interface Movie {
   description_en: string
   description_ar: string
   poster_url: string
+  backdrop_url: string
   video_url: string
   year: number
   genre: string[]
@@ -18,6 +19,6 @@ export interface MovieFilters {
   genre?: string
   year?: number
   rating?: number
-  sortBy?: "year" | "rating" | "views" | "title"
+  sortBy?: "year" | "rating" | "views" | "title" | "popularity"
   limit?: number
 }

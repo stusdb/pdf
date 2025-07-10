@@ -2,19 +2,19 @@
 
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/hooks/use-language"
-import { Languages } from "lucide-react"
+import { Globe } from "lucide-react"
 
 export function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage()
 
-  const toggleLanguage = () => {
-    setLanguage(language === "en" ? "ar" : "en")
-  }
-
   return (
-    <Button variant="ghost" size="icon" onClick={toggleLanguage} className="text-white hover:bg-gray-800">
-      <Languages className="h-5 w-5" />
-      <span className="sr-only">Switch Language</span>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
+      className="text-white hover:bg-white/10"
+    >
+      <Globe className="h-5 w-5" />
     </Button>
   )
 }

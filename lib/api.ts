@@ -1,241 +1,233 @@
 import type { Movie, MovieFilters } from "@/types/movie"
 
-// Mock movie data
-const mockMovies: Movie[] = [
-  {
-    id: "1",
-    title_en: "Inception",
-    title_ar: "بداية",
-    description_en:
-      "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.",
-    description_ar:
-      "لص يسرق الأسرار من الشركات باستخدام تقنية مشاركة الأحلام يُكلف بمهمة عكسية وهي زرع فكرة في عقل مدير تنفيذي.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    year: 2010,
-    genre: ["Action", "Sci-Fi", "Thriller"],
-    rating: 8.8,
-    views: 2500000,
-    duration: 148,
-    subtitle_url: "/subtitles/inception.srt",
-  },
-  {
-    id: "2",
-    title_en: "The Dark Knight",
-    title_ar: "فارس الظلام",
-    description_en:
-      "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests.",
-    description_ar:
-      "عندما يعيث الجوكر فساداً وفوضى في مدينة جوثام، يجب على باتمان أن يواجه واحداً من أعظم الاختبارات النفسية والجسدية.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-    year: 2008,
-    genre: ["Action", "Crime", "Drama"],
-    rating: 9.0,
-    views: 3200000,
-    duration: 152,
-  },
-  {
-    id: "3",
-    title_en: "Interstellar",
-    title_ar: "بين النجوم",
-    description_en:
-      "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
-    description_ar: "فريق من المستكشفين يسافر عبر ثقب دودي في الفضاء في محاولة لضمان بقاء البشرية.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    year: 2014,
-    genre: ["Adventure", "Drama", "Sci-Fi"],
-    rating: 8.6,
-    views: 1800000,
-    duration: 169,
-  },
-  {
-    id: "4",
-    title_en: "The Matrix",
-    title_ar: "المصفوفة",
-    description_en:
-      "A computer programmer is led to fight an underground war against powerful computers who have constructed his entire reality with a system called the Matrix.",
-    description_ar: "مبرمج كمبيوتر يُقاد لخوض حرب سرية ضد أجهزة كمبيوتر قوية بنت واقعه بالكامل بنظام يُسمى المصفوفة.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-    year: 1999,
-    genre: ["Action", "Sci-Fi"],
-    rating: 8.7,
-    views: 2100000,
-    duration: 136,
-  },
-  {
-    id: "5",
-    title_en: "Pulp Fiction",
-    title_ar: "الخيال الرخيص",
-    description_en:
-      "The lives of two mob hitmen, a boxer, a gangster and his wife intertwine in four tales of violence and redemption.",
-    description_ar: "حياة قاتلين من المافيا وملاكم وعضو عصابة وزوجته تتشابك في أربع حكايات من العنف والخلاص.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-    year: 1994,
-    genre: ["Crime", "Drama"],
-    rating: 8.9,
-    views: 1900000,
-    duration: 154,
-  },
-  {
-    id: "6",
-    title_en: "Avatar",
-    title_ar: "أفاتار",
-    description_en:
-      "A paraplegic Marine dispatched to the moon Pandora on a unique mission becomes torn between following his orders and protecting the world he feels is his home.",
-    description_ar:
-      "جندي بحري مشلول يُرسل إلى قمر باندورا في مهمة فريدة يجد نفسه ممزقاً بين اتباع أوامره وحماية العالم الذي يشعر أنه بيته.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-    year: 2009,
-    genre: ["Action", "Adventure", "Fantasy"],
-    rating: 7.8,
-    views: 2800000,
-    duration: 162,
-  },
-  {
-    id: "7",
-    title_en: "Titanic",
-    title_ar: "تايتانيك",
-    description_en:
-      "A seventeen-year-old aristocrat falls in love with a kind but poor artist aboard the luxurious, ill-fated R.M.S. Titanic.",
-    description_ar: "أرستقراطية في السابعة عشرة تقع في حب فنان طيب لكن فقير على متن سفينة تايتانيك الفاخرة سيئة الحظ.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
-    year: 1997,
-    genre: ["Drama", "Romance"],
-    rating: 7.8,
-    views: 3500000,
-    duration: 194,
-  },
-  {
-    id: "8",
-    title_en: "The Avengers",
-    title_ar: "المنتقمون",
-    description_en:
-      "Earth's mightiest heroes must come together and learn to fight as a team if they are going to stop the mischievous Loki and his alien army from enslaving humanity.",
-    description_ar:
-      "أقوى أبطال الأرض يجب أن يتحدوا ويتعلموا القتال كفريق إذا كانوا سيوقفون لوكي المؤذي وجيشه الفضائي من استعباد البشرية.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-    year: 2012,
-    genre: ["Action", "Adventure", "Sci-Fi"],
-    rating: 8.0,
-    views: 2700000,
-    duration: 143,
-  },
-  {
-    id: "9",
-    title_en: "Joker",
-    title_ar: "الجوكر",
-    description_en:
-      "In Gotham City, mentally troubled comedian Arthur Fleck is disregarded and mistreated by society. He then embarks on a downward spiral of revolution and bloody crime.",
-    description_ar:
-      "في مدينة جوثام، الكوميديان آرثر فليك المضطرب نفسياً يتم تجاهله وسوء معاملته من المجتمع. ثم يبدأ في دوامة هابطة من الثورة والجريمة الدموية.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-    year: 2019,
-    genre: ["Crime", "Drama", "Thriller"],
-    rating: 8.4,
-    views: 2200000,
-    duration: 122,
-  },
-  {
-    id: "10",
-    title_en: "Spider-Man: No Way Home",
-    title_ar: "سبايدر مان: لا طريق للعودة",
-    description_en:
-      "With Spider-Man's identity now revealed, Peter asks Doctor Strange for help. When a spell goes wrong, dangerous foes from other worlds start to appear.",
-    description_ar:
-      "مع كشف هوية سبايدر مان الآن، يطلب بيتر المساعدة من الدكتور سترينج. عندما تسوء التعويذة، يبدأ أعداء خطيرون من عوالم أخرى بالظهور.",
-    poster_url: "/placeholder.svg?height=600&width=400",
-    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4",
-    year: 2021,
-    genre: ["Action", "Adventure", "Fantasy"],
-    rating: 8.2,
-    views: 3100000,
-    duration: 148,
-  },
-]
+const API_KEY = "2493209ccf8d8970c4728e6713c615e6"
+const BASE_URL = "https://api.themoviedb.org/3"
+const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/"
+const BACKDROP_SIZE = "w1280"
+const POSTER_SIZE = "w500"
 
-// Simulate API delay
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+// TMDb API response interfaces
+interface TMDbMovie {
+  id: number
+  title: string
+  overview: string
+  poster_path: string | null
+  backdrop_path: string | null
+  release_date: string
+  genre_ids: number[]
+  vote_average: number
+  popularity: number
+  runtime?: number
+  genres?: { id: number; name: string }[]
+  videos?: {
+    results: Array<{
+      key: string
+      site: string
+      type: string
+      name: string
+    }>
+  }
+}
+
+interface TMDbResponse {
+  results: TMDbMovie[]
+  total_pages: number
+  total_results: number
+}
+
+interface TMDbGenre {
+  id: number
+  name: string
+}
+
+// 🎭 خريطة الأنواع مع الترجمة العربية
+const genreMap: Record<number, { en: string; ar: string }> = {
+  28: { en: "Action", ar: "أكشن" },
+  12: { en: "Adventure", ar: "مغامرة" },
+  16: { en: "Animation", ar: "رسوم متحركة" },
+  35: { en: "Comedy", ar: "كوميديا" },
+  80: { en: "Crime", ar: "جريمة" },
+  99: { en: "Documentary", ar: "وثائقي" },
+  18: { en: "Drama", ar: "دراما" },
+  10751: { en: "Family", ar: "عائلي" },
+  14: { en: "Fantasy", ar: "خيال" },
+  36: { en: "History", ar: "تاريخي" },
+  27: { en: "Horror", ar: "رعب" },
+  10402: { en: "Music", ar: "موسيقى" },
+  9648: { en: "Mystery", ar: "غموض" },
+  10749: { en: "Romance", ar: "رومانسي" },
+  878: { en: "Science Fiction", ar: "خيال علمي" },
+  10770: { en: "TV Movie", ar: "فيلم تلفزيوني" },
+  53: { en: "Thriller", ar: "إثارة" },
+  10752: { en: "War", ar: "حرب" },
+  37: { en: "Western", ar: "غربي" },
+}
+
+// 🔧 دالة مساعدة لطلبات API
+async function fetchFromTMDb(endpoint: string, params: Record<string, string> = {}): Promise<any> {
+  const url = new URL(`${BASE_URL}${endpoint}`)
+  url.searchParams.append("api_key", API_KEY)
+
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.append(key, value)
+  })
+
+  try {
+    const response = await fetch(url.toString())
+    if (!response.ok) {
+      throw new Error(`TMDb API error: ${response.status}`)
+    }
+    return await response.json()
+  } catch (error) {
+    console.error("TMDb API fetch error:", error)
+    throw error
+  }
+}
+
+// 🎬 تحويل بيانات TMDb إلى تنسيقنا
+function convertTMDbMovie(tmdbMovie: TMDbMovie): Movie {
+  const getImageUrl = (path: string | null, size: string) =>
+    path ? `${IMAGE_BASE_URL}${size}${path}` : "/placeholder.svg?height=600&width=400"
+
+  const genres =
+    tmdbMovie.genre_ids?.map((id) => genreMap[id]?.en || "Unknown").filter(Boolean) ||
+    tmdbMovie.genres?.map((g) => g.name) ||
+    []
+
+  const arabicTitle = tmdbMovie.title
+
+  return {
+    id: tmdbMovie.id.toString(),
+    title_en: tmdbMovie.title,
+    title_ar: arabicTitle,
+    description_en: tmdbMovie.overview || "No description available.",
+    description_ar: tmdbMovie.overview || "لا يوجد وصف متاح.",
+    poster_url: getImageUrl(tmdbMovie.poster_path, POSTER_SIZE),
+    backdrop_url: getImageUrl(tmdbMovie.backdrop_path, BACKDROP_SIZE),
+    video_url: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`,
+    year: new Date(tmdbMovie.release_date || "2023").getFullYear(),
+    genre: genres,
+    rating: Math.round(tmdbMovie.vote_average * 10) / 10,
+    views: Math.floor(tmdbMovie.popularity * 1000),
+    duration: tmdbMovie.runtime || 120,
+    subtitle_url: undefined,
+  }
+}
 
 export async function getMovies(filters?: MovieFilters): Promise<Movie[]> {
-  await delay(500) // Simulate network delay
+  try {
+    let endpoint = "/movie/popular"
+    const params: Record<string, string> = {}
 
-  let filteredMovies = [...mockMovies]
+    if (filters?.sortBy === "rating") {
+      endpoint = "/movie/top_rated"
+    } else if (filters?.sortBy === "year") {
+      endpoint = "/discover/movie"
+      params.sort_by = "release_date.desc"
+    }
 
-  if (filters?.genre) {
-    filteredMovies = filteredMovies.filter((movie) => movie.genre.includes(filters.genre!))
-  }
-
-  if (filters?.year) {
-    filteredMovies = filteredMovies.filter((movie) => movie.year === filters.year)
-  }
-
-  if (filters?.rating) {
-    filteredMovies = filteredMovies.filter((movie) => movie.rating >= filters.rating!)
-  }
-
-  if (filters?.sortBy) {
-    filteredMovies.sort((a, b) => {
-      switch (filters.sortBy) {
-        case "year":
-          return b.year - a.year
-        case "rating":
-          return b.rating - a.rating
-        case "views":
-          return b.views - a.views
-        case "title":
-          return a.title_en.localeCompare(b.title_en)
-        default:
-          return 0
+    if (filters?.genre) {
+      endpoint = "/discover/movie"
+      const genreId = Object.entries(genreMap).find(([_, value]) => value.en === filters.genre)?.[0]
+      if (genreId) {
+        params.with_genres = genreId
       }
-    })
-  }
+    }
 
-  if (filters?.limit) {
-    filteredMovies = filteredMovies.slice(0, filters.limit)
-  }
+    const data: TMDbResponse = await fetchFromTMDb(endpoint, params)
+    const movies = data.results.slice(0, filters?.limit || 20).map(convertTMDbMovie)
 
-  return filteredMovies
+    return movies
+  } catch (error) {
+    console.error("Error fetching movies:", error)
+    return []
+  }
 }
 
 export async function getMovieById(id: string): Promise<Movie | null> {
-  await delay(300)
-  return mockMovies.find((movie) => movie.id === id) || null
+  try {
+    const tmdbMovie: TMDbMovie = await fetchFromTMDb(`/movie/${id}`, {
+      append_to_response: "videos",
+    })
+
+    return convertTMDbMovie(tmdbMovie)
+  } catch (error) {
+    console.error("Error fetching movie by ID:", error)
+    return null
+  }
 }
 
 export async function getFeaturedMovies(): Promise<Movie[]> {
-  await delay(400)
-  return mockMovies.filter((movie) => movie.rating >= 8.5).slice(0, 5)
+  try {
+    const data: TMDbResponse = await fetchFromTMDb("/movie/now_playing")
+    return data.results.slice(0, 5).map(convertTMDbMovie)
+  } catch (error) {
+    console.error("Error fetching featured movies:", error)
+    return []
+  }
 }
 
 export async function searchMovies(query: string): Promise<Movie[]> {
-  await delay(300)
+  if (!query.trim()) return []
 
-  const searchTerm = query.toLowerCase()
-  return mockMovies.filter(
-    (movie) =>
-      movie.title_en.toLowerCase().includes(searchTerm) ||
-      movie.title_ar.includes(searchTerm) ||
-      movie.description_en.toLowerCase().includes(searchTerm) ||
-      movie.description_ar.includes(searchTerm) ||
-      movie.genre.some((genre) => genre.toLowerCase().includes(searchTerm)),
-  )
+  try {
+    const data: TMDbResponse = await fetchFromTMDb("/search/movie", {
+      query: query.trim(),
+    })
+
+    return data.results.map(convertTMDbMovie)
+  } catch (error) {
+    console.error("Error searching movies:", error)
+    return []
+  }
 }
 
 export async function getMoviesByGenre(genre: string): Promise<Movie[]> {
-  await delay(400)
-  return mockMovies.filter((movie) => movie.genre.includes(genre))
+  try {
+    const genreId = Object.entries(genreMap).find(([_, value]) => value.en === genre)?.[0]
+
+    if (!genreId) return []
+
+    const data: TMDbResponse = await fetchFromTMDb("/discover/movie", {
+      with_genres: genreId,
+      sort_by: "popularity.desc",
+    })
+
+    return data.results.map(convertTMDbMovie)
+  } catch (error) {
+    console.error("Error fetching movies by genre:", error)
+    return []
+  }
 }
 
 export async function getGenres(): Promise<string[]> {
-  await delay(200)
-  const allGenres = mockMovies.flatMap((movie) => movie.genre)
-  return [...new Set(allGenres)].sort()
+  try {
+    const data: { genres: TMDbGenre[] } = await fetchFromTMDb("/genre/movie/list")
+    return data.genres.map((genre) => genre.name).sort()
+  } catch (error) {
+    console.error("Error fetching genres:", error)
+    return Object.values(genreMap)
+      .map((g) => g.en)
+      .sort()
+  }
+}
+
+export async function getTrendingMovies(): Promise<Movie[]> {
+  try {
+    const data: TMDbResponse = await fetchFromTMDb("/trending/movie/week")
+    return data.results.slice(0, 10).map(convertTMDbMovie)
+  } catch (error) {
+    console.error("Error fetching trending movies:", error)
+    return []
+  }
+}
+
+export async function getUpcomingMovies(): Promise<Movie[]> {
+  try {
+    const data: TMDbResponse = await fetchFromTMDb("/movie/upcoming")
+    return data.results.slice(0, 10).map(convertTMDbMovie)
+  } catch (error) {
+    console.error("Error fetching upcoming movies:", error)
+    return []
+  }
 }

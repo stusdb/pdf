@@ -1,199 +1,294 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import Image from "next/image"
+import { Star, PlayCircle, ChevronDown, ChevronUp, ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { LoadingScreen } from "@/components/loading-screen"
-import { Header } from "@/components/header"
-import { BottomNav } from "@/components/bottom-nav"
-import type { Movie } from "@/types/movie"
-import { getMovieById } from "@/lib/api"
-import { useFavorites } from "@/hooks/use-favorites"
-import { useLanguage } from "@/hooks/use-language"
-import { Play, Share2, Star, Clock, Calendar, Eye, Heart, Download } from "lucide-react"
+import {
+  getMovieDetails,
+  getMovieCredits,
+  getMovieImages,
+  getMovieVideos,
+  getImageUrl,
+  getBackdropUrl,
+  type MovieDetails,
+  type CastMember,
+  type MovieImage,
+  type MovieVideo,
+} from "@/lib/tmdb-api"
+import LoadingSpinner from "@/components/loading-spinner"
+import EmptyState from "@/components/empty-state"
+import CastCard from "@/components/cast-card"
+import DetailCard from "@/components/detail-card"
+import CompanyCard from "@/components/company-card"
+import ImageModal from "@/components/image-modal"
+import { useToast } from "@/hooks/use-toast"
+import Plyr from "plyr-react"
+import "plyr-react/plyr.css"
 
-export default function MovieDetailsPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { language } = useLanguage()
-  const { favorites, addToFavorites, removeFromFavorites } = useFavorites()
-  const [movie, setMovie] = useState<Movie | null>(null)
+// Helper to format currency
+const formatCurrency = (amount: number) => {
+  if (!amount) return "N/A"
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+// Helper to format runtime
+const formatRuntime = (minutes: number | null) => {
+  if (!minutes) return "N/A"
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  return `${hours}h ${remainingMinutes}m`
+}
+
+export default function MovieDetailPage() {
+  const { id } = useParams()
+  const movieId = typeof id === "string" ? Number.parseInt(id) : null
+
+  const [movie, setMovie] = useState<MovieDetails | null>(null)
+  const [cast, setCast] = useState<CastMember[]>([])
+  const [images, setImages] = useState<MovieImage[]>([])
+  const [videos, setVideos] = useState<MovieVideo[]>([])
   const [loading, setLoading] = useState(true)
-
-  const movieId = params.id as string
-  const isFavorite = favorites.includes(movieId)
+  const [showFullOverview, setShowFullOverview] = useState(false)
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+  const [currentImage, setCurrentImage] = useState("")
+  const { toast } = useToast()
 
   useEffect(() => {
-    const loadMovie = async () => {
+    if (!movieId) {
+      setLoading(false)
+      return
+    }
+
+    const fetchData = async () => {
+      setLoading(true)
       try {
-        const movieData = await getMovieById(movieId)
-        setMovie(movieData)
+        const [movieDetails, movieCredits, movieImages, movieVideos] = await Promise.all([
+          getMovieDetails(movieId),
+          getMovieCredits(movieId),
+          getMovieImages(movieId),
+          getMovieVideos(movieId),
+        ])
+
+        setMovie(movieDetails)
+        setCast(movieCredits?.cast || [])
+        setImages(movieImages?.backdrops || []) // Prioritize backdrops for images section
+        setVideos(movieVideos?.results || [])
       } catch (error) {
-        console.error("Error loading movie:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load movie details.",
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
     }
 
-    if (movieId) {
-      loadMovie()
-    }
-  }, [movieId])
+    fetchData()
+  }, [movieId, toast])
 
-  const handleFavoriteToggle = () => {
-    if (isFavorite) {
-      removeFromFavorites(movieId)
-    } else {
-      addToFavorites(movieId)
-    }
-  }
+  const trailerVideo = videos.find((video) => video.type === "Trailer" && video.site === "YouTube")
+  const youtubeId = trailerVideo?.key
 
-  const handleShare = async () => {
-    if (navigator.share && movie) {
-      try {
-        await navigator.share({
-          title: language === "ar" ? movie.title_ar : movie.title_en,
-          text: language === "ar" ? movie.description_ar : movie.description_en,
-          url: window.location.href,
-        })
-      } catch (error) {
-        console.error("Error sharing:", error)
-      }
-    }
+  const handleImageClick = (imageUrl: string) => {
+    setCurrentImage(imageUrl)
+    setIsImageModalOpen(true)
   }
 
   if (loading) {
-    return <LoadingScreen />
+    return <LoadingSpinner />
   }
 
   if (!movie) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center text-foreground">
-          <h2 className="text-2xl font-bold mb-2">Movie Not Found</h2>
-          <p className="text-muted-foreground">The requested movie could not be found.</p>
-        </div>
-      </div>
-    )
+    return <EmptyState message="Movie not found." />
   }
 
-  const title = language === "ar" ? movie.title_ar : movie.title_en
-  const description = language === "ar" ? movie.description_ar : movie.description_en
+  const displayOverview = showFullOverview ? movie.overview : `${movie.overview?.substring(0, 150)}...`
+  const needsTruncation = movie.overview && movie.overview.length > 150
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="pb-20">
-        {/* Hero Section */}
-        <div className="relative h-[45vh] overflow-hidden">
-          <Image src={movie.backdrop_url || movie.poster_url} alt={title} fill className="object-cover" priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-
-          {/* Play Button */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Button
-              onClick={() => router.push(`/player/${movie.id}`)}
-              size="lg"
-              className="w-16 h-16 rounded-full bg-green-500/90 backdrop-blur-sm hover:bg-green-600 text-white shadow-2xl"
-            >
-              <Play className="h-8 w-8 fill-current ml-1" />
-            </Button>
+    <div className="min-h-screen bg-background-dark text-text-white pb-16 md:pb-0">
+      <div className="relative w-full h-[300px] md:h-[400px] overflow-hidden">
+        <Image
+          src={getBackdropUrl(movie.backdrop_path || movie.poster_path, "w1280")}
+          alt={movie.title}
+          fill
+          className="object-cover"
+          priority
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.svg?height=400&width=1280"
+            e.currentTarget.srcset = ""
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-text-white drop-shadow-lg">{movie.title}</h1>
+          {movie.tagline && <p className="text-lg text-gray-300 italic mt-1">{movie.tagline}</p>}
+          <div className="flex items-center gap-2 mt-2">
+            <Star className="h-5 w-5 fill-accent-gold text-accent-gold" />
+            <span className="text-xl font-semibold">
+              {movie.vote_average ? (Math.round(movie.vote_average * 10) / 10).toFixed(1) : "N/A"}
+            </span>
+            <span className="text-gray-400 text-sm">({movie.vote_count} votes)</span>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {movie.genres.map((genre) => (
+              <span key={genre.id} className="bg-primary-red text-white text-xs px-2 py-1 rounded-full">
+                {genre.name}
+              </span>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Movie Details */}
-        <div className="px-4 py-6 space-y-6">
-          {/* Title and Basic Info */}
-          <div className="space-y-4">
-            <h1 className="text-2xl font-bold text-foreground leading-tight">{title}</h1>
+      <div className="container mx-auto px-4 py-6">
+        {/* Watch Trailer / Add to List */}
+        <div className="flex gap-4 mb-6">
+          {youtubeId && (
+            <Button className="flex-1 bg-primary-red text-white hover:bg-primary-red/90">
+              <PlayCircle className="h-5 w-5 mr-2" />
+              Watch Trailer
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            className="flex-1 border-primary-red text-primary-red hover:bg-primary-red/10 bg-transparent"
+          >
+            Add to List
+          </Button>
+        </div>
 
-            {/* Meta Information */}
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <Badge className="bg-yellow-500 text-black font-bold">
-                <Star className="h-3 w-3 mr-1 fill-current" />
-                {movie.rating}
-              </Badge>
+        {/* Overview */}
+        <section className="mb-6">
+          <h2 className="text-2xl font-bold mb-3">Overview</h2>
+          <p className="text-gray-300 text-base leading-relaxed">
+            {displayOverview}
+            {needsTruncation && (
+              <Button
+                variant="link"
+                className="p-0 h-auto text-primary-red ml-1"
+                onClick={() => setShowFullOverview(!showFullOverview)}
+              >
+                {showFullOverview ? "Show Less" : "Read More"}
+                {showFullOverview ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
+              </Button>
+            )}
+          </p>
+        </section>
 
-              <div className="flex items-center text-muted-foreground">
-                <Calendar className="h-3 w-3 mr-1" />
-                <span>{movie.year}</span>
-              </div>
-
-              <div className="flex items-center text-muted-foreground">
-                <Clock className="h-3 w-3 mr-1" />
-                <span>{movie.duration} min</span>
-              </div>
-
-              <div className="flex items-center text-muted-foreground">
-                <Eye className="h-3 w-3 mr-1" />
-                <span>{(movie.views / 1000000).toFixed(1)}M</span>
-              </div>
+        {/* Video Player */}
+        {youtubeId && (
+          <section className="mb-6">
+            <h2 className="text-2xl font-bold mb-3">Trailer</h2>
+            <div className="relative aspect-video rounded-lg overflow-hidden">
+              <Plyr
+                source={{
+                  type: "video",
+                  sources: [
+                    {
+                      src: youtubeId,
+                      provider: "youtube",
+                    },
+                  ],
+                }}
+                options={{
+                  controls: ["play", "progress", "current-time", "mute", "volume", "fullscreen"],
+                  autoplay: false,
+                  loop: { active: false },
+                }}
+              />
             </div>
+          </section>
+        )}
 
-            {/* Genres */}
-            <div className="flex flex-wrap gap-2">
-              {movie.genre.map((genre) => (
-                <Badge key={genre} variant="outline" className="border-border text-muted-foreground">
-                  {genre}
-                </Badge>
+        {/* Cast */}
+        {cast.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-2xl font-bold mb-3">Cast</h2>
+            <div className="flex overflow-x-auto hide-scrollbar space-x-4 pb-2">
+              {cast.slice(0, 10).map((member) => (
+                <CastCard
+                  key={member.id}
+                  name={member.name}
+                  character={member.character}
+                  profilePath={member.profile_path}
+                />
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Details */}
+        <section className="mb-6">
+          <h2 className="text-2xl font-bold mb-3">Details</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <DetailCard label="Release Date" value={movie.release_date || "N/A"} icon="release" />
+            <DetailCard label="Runtime" value={formatRuntime(movie.runtime)} icon="runtime" />
+            <DetailCard label="Status" value={movie.status || "N/A"} icon="status" />
+            <DetailCard label="Budget" value={formatCurrency(movie.budget)} icon="budget" />
+            <DetailCard label="Revenue" value={formatCurrency(movie.revenue)} icon="revenue" />
+            {movie.spoken_languages.length > 0 && (
+              <DetailCard label="Language" value={movie.spoken_languages[0]?.english_name || "N/A"} icon="status" />
+            )}
           </div>
+        </section>
 
-          {/* Action Buttons */}
-          <div className="space-y-3">
-            <Button
-              onClick={() => router.push(`/player/${movie.id}`)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 text-lg"
-              size="lg"
-            >
-              <Play className="h-5 w-5 mr-2 fill-current" />
-              {language === "ar" ? "مشاهدة الآن" : "Watch Now"}
-            </Button>
-
-            <div className="grid grid-cols-3 gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 border-border text-foreground hover:bg-muted bg-transparent"
-                onClick={handleFavoriteToggle}
-              >
-                <Heart className={`h-4 w-4 mr-2 ${isFavorite ? "fill-current text-red-500" : ""}`} />
-                {language === "ar" ? "مفضلة" : "Favorite"}
-              </Button>
-
-              <Button
-                variant="outline"
-                className="border-border text-foreground hover:bg-muted bg-transparent"
-                onClick={handleShare}
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                {language === "ar" ? "مشاركة" : "Share"}
-              </Button>
-
-              <Button variant="outline" className="border-border text-foreground hover:bg-muted bg-transparent">
-                <Download className="h-4 w-4 mr-2" />
-                {language === "ar" ? "تحميل" : "Download"}
-              </Button>
+        {/* Production Companies */}
+        {movie.production_companies.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-2xl font-bold mb-3">Production Companies</h2>
+            <div className="flex overflow-x-auto hide-scrollbar space-x-4 pb-2">
+              {movie.production_companies.map((company) => (
+                <CompanyCard key={company.id} name={company.name} logoPath={company.logo_path} />
+              ))}
             </div>
-          </div>
+          </section>
+        )}
 
-          {/* Description */}
-          <Card className="bg-card border-border">
-            <CardContent className="p-4">
-              <h3 className="text-lg font-semibold text-foreground mb-3">
-                {language === "ar" ? "نبذة عن الفيلم" : "About"}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">{description}</p>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+        {/* Images */}
+        {images.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-2xl font-bold mb-3">Images</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {images.slice(0, 8).map((img, index) => (
+                <div
+                  key={index}
+                  className="relative aspect-video rounded-lg overflow-hidden cursor-pointer group"
+                  onClick={() => handleImageClick(getImageUrl(img.file_path, "original"))}
+                >
+                  <Image
+                    src={getImageUrl(img.file_path, "w500") || "/placeholder.svg"}
+                    alt={`Image ${index + 1}`}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg?height=281&width=500"
+                      e.currentTarget.srcset = ""
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ImageIcon className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
 
-      <BottomNav />
+      <ImageModal
+        isOpen={isImageModalOpen}
+        onClose={() => setIsImageModalOpen(false)}
+        imageUrl={currentImage}
+        altText={movie.title}
+      />
     </div>
   )
 }

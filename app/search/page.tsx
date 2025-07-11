@@ -1,115 +1,166 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { Input } from "@/components/ui/input"
-import { MovieCard } from "@/components/movie-card"
-import { LoadingSpinner } from "@/components/loading-spinner"
-import type { Movie } from "@/types/movie"
-import { searchMovies } from "@/lib/api"
-import { useLanguage } from "@/hooks/use-language"
-import { useDebounce } from "@/hooks/use-debounce"
-import { Search } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Search, X } from "lucide-react"
+import MovieCard from "@/components/movie-card"
+import EmptyState from "@/components/empty-state"
+import { getMovieGenres, searchMovies, type Movie, type Genre } from "@/lib/tmdb-api"
+import { useToast } from "@/hooks/use-toast"
+import LoadingSpinner from "@/components/loading-spinner" // Declare the LoadingSpinner component
 
-export default function SearchPage() {
-  const { language } = useLanguage()
-  const [query, setQuery] = useState("")
-  const [movies, setMovies] = useState<Movie[]>([])
-  const [loading, setLoading] = useState(false)
-  const [hasSearched, setHasSearched] = useState(false)
-
-  const debouncedQuery = useDebounce(query, 300)
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
 
   useEffect(() => {
-    const performSearch = async () => {
-      if (!debouncedQuery.trim()) {
-        setMovies([])
-        setHasSearched(false)
-        return
-      }
+    const handler = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
 
-      setLoading(true)
-      setHasSearched(true)
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [value, delay])
 
+  return debouncedValue
+}
+
+export default function SearchPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedGenre, setSelectedGenre] = useState<number | null>(null)
+  const [movies, setMovies] = useState<Movie[]>([])
+  const [genres, setGenres] = useState<Genre[]>([])
+  const [loading, setLoading] = useState(false)
+  const [initialLoad, setInitialLoad] = useState(true)
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchGenres = async () => {
       try {
-        const results = await searchMovies(debouncedQuery)
-        setMovies(results)
+        const fetchedGenres = await getMovieGenres()
+        setGenres(fetchedGenres)
       } catch (error) {
-        console.error("Error searching movies:", error)
-        setMovies([])
+        toast({
+          title: "Error",
+          description: "Failed to load genres.",
+          variant: "destructive",
+        })
+      }
+    }
+    fetchGenres()
+  }, [toast])
+
+  useEffect(() => {
+    const fetchMovies = async () => {
+      setLoading(true)
+      try {
+        const fetchedMovies = await searchMovies(debouncedSearchTerm)
+        setMovies(fetchedMovies)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to search movies.",
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
+        setInitialLoad(false)
       }
     }
 
-    performSearch()
-  }, [debouncedQuery])
+    if (debouncedSearchTerm) {
+      fetchMovies()
+    } else if (!initialLoad) {
+      setMovies([]) // Clear movies if search term is empty after initial load
+    }
+  }, [debouncedSearchTerm, initialLoad, toast])
 
-  const placeholder = language === "ar" ? "ابحث عن الأفلام..." : "Search for movies..."
+  const filteredMovies = useMemo(() => {
+    if (selectedGenre === null) {
+      return movies
+    }
+    return movies.filter((movie) => movie.genre_ids?.includes(selectedGenre))
+  }, [movies, selectedGenre])
 
   return (
-    <div className="min-h-screen bg-gray-950 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Search Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-6 text-center">{language === "ar" ? "البحث" : "Search"}</h1>
+    <div className="min-h-screen bg-background-dark text-text-white pb-16 md:pb-0">
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-3xl font-bold mb-6 text-center">Search Movies</h1>
 
-          <div className="relative max-w-md mx-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              type="text"
-              placeholder={placeholder}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-10 bg-gray-900 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500"
-            />
-          </div>
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search for movies..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-full border-border-gray bg-background-light pl-10 pr-4 py-2 text-text-white placeholder:text-gray-400 focus:border-primary-red focus:ring-primary-red"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-text-white"
+              onClick={() => setSearchTerm("")}
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">Clear search</span>
+            </Button>
+          )}
         </div>
 
-        {/* Search Results */}
-        {loading ? (
-          <LoadingSpinner />
-        ) : hasSearched ? (
-          movies.length === 0 ? (
-            <div className="text-center text-gray-400 mt-12">
-              <Search className="h-16 w-16 mx-auto mb-4 text-gray-600" />
-              <h2 className="text-2xl font-semibold mb-2">
-                {language === "ar" ? "لا توجد نتائج" : "No Results Found"}
-              </h2>
-              <p className="text-lg">
-                {language === "ar"
-                  ? `لم نجد أي أفلام تطابق "${query}"`
-                  : `We couldn't find any movies matching "${query}"`}
-              </p>
+        <div className="flex overflow-x-auto hide-scrollbar space-x-2 mb-6 pb-2">
+          <Button
+            variant={selectedGenre === null ? "default" : "outline"}
+            className={
+              selectedGenre === null
+                ? "bg-primary-red text-white"
+                : "border-border-gray text-gray-400 hover:bg-background-light"
+            }
+            onClick={() => setSelectedGenre(null)}
+          >
+            All
+          </Button>
+          {genres.map((genre) => (
+            <Button
+              key={genre.id}
+              variant={selectedGenre === genre.id ? "default" : "outline"}
+              className={
+                selectedGenre === genre.id
+                  ? "bg-primary-red text-white"
+                  : "border-border-gray text-gray-400 hover:bg-background-light"
+              }
+              onClick={() => setSelectedGenre(genre.id)}
+            >
+              {genre.name}
+            </Button>
+          ))}
+        </div>
+
+        <Suspense fallback={<LoadingSpinner />}>
+          {loading ? (
+            <LoadingSpinner />
+          ) : filteredMovies.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {filteredMovies.map((movie) => (
+                <MovieCard
+                  key={movie.id}
+                  id={movie.id}
+                  title={movie.title}
+                  posterPath={movie.poster_path}
+                  voteAverage={movie.vote_average}
+                />
+              ))}
             </div>
           ) : (
-            <>
-              <div className="text-white mb-6">
-                <p className="text-lg">
-                  {language === "ar"
-                    ? `تم العثور على ${movies.length} نتيجة لـ "${query}"`
-                    : `Found ${movies.length} results for "${query}"`}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {movies.map((movie) => (
-                  <MovieCard key={movie.id} movie={movie} />
-                ))}
-              </div>
-            </>
-          )
-        ) : (
-          <div className="text-center text-gray-400 mt-12">
-            <Search className="h-16 w-16 mx-auto mb-4 text-gray-600" />
-            <h2 className="text-2xl font-semibold mb-2">
-              {language === "ar" ? "ابحث عن الأفلام" : "Search for Movies"}
-            </h2>
-            <p className="text-lg">
-              {language === "ar"
-                ? "اكتب اسم الفيلم الذي تريد البحث عنه"
-                : "Type the name of the movie you want to find"}
-            </p>
-          </div>
-        )}
+            <EmptyState
+              message={searchTerm ? "No movies found matching your search." : "Start typing to search for movies."}
+            />
+          )}
+        </Suspense>
       </div>
     </div>
   )

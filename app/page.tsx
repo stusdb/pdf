@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MovieBanner } from "@/components/movie-banner"
-import { MovieSection } from "@/components/movie-section"
-import { LoadingSpinner } from "@/components/loading-spinner"
-import { Header } from "@/components/header"
-import { BottomNavigation } from "@/components/bottom-navigation"
+import { HeroSection } from "@/components/hero-section"
+import { ContentCarousel } from "@/components/content-carousel"
+import { QuickActions } from "@/components/quick-actions"
+import { TopNavigation } from "@/components/top-navigation"
+import { BottomTabBar } from "@/components/bottom-tab-bar"
+import { SplashScreen } from "@/components/splash-screen"
 import type { Movie } from "@/types/movie"
-import { getMovies, getFeaturedMovies, getTrendingMovies, getUpcomingMovies } from "@/lib/api"
+import { getMovies, getFeaturedMovies, getTrendingMovies } from "@/lib/api"
 import { useLanguage } from "@/hooks/use-language"
 
 export default function HomePage() {
@@ -15,66 +16,71 @@ export default function HomePage() {
   const [featuredMovies, setFeaturedMovies] = useState<Movie[]>([])
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([])
   const [popularMovies, setPopularMovies] = useState<Movie[]>([])
-  const [upcomingMovies, setUpcomingMovies] = useState<Movie[]>([])
+  const [newReleases, setNewReleases] = useState<Movie[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadMovies = async () => {
+    const loadContent = async () => {
       try {
-        const [featured, trending, popular, upcoming] = await Promise.all([
+        const [featured, trending, popular, releases] = await Promise.all([
           getFeaturedMovies(),
           getTrendingMovies(),
-          getMovies({ sortBy: "rating", limit: 10 }),
-          getUpcomingMovies(),
+          getMovies({ sortBy: "rating", limit: 15 }),
+          getMovies({ sortBy: "year", limit: 15 }),
         ])
 
         setFeaturedMovies(featured)
         setTrendingMovies(trending)
         setPopularMovies(popular)
-        setUpcomingMovies(upcoming)
+        setNewReleases(releases)
       } catch (error) {
-        console.error("Error loading movies:", error)
+        console.error("Error loading content:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    loadMovies()
+    loadContent()
   }, [])
 
   if (loading) {
-    return <LoadingSpinner />
+    return <SplashScreen />
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <Header />
+    <div className="min-h-screen bg-background">
+      <TopNavigation />
 
-      <main className="pb-20">
-        {/* Featured Movie Banner */}
-        <section className="mb-8">
-          <MovieBanner movies={featuredMovies} />
-        </section>
+      <main className="pb-24">
+        {/* Hero Section */}
+        <HeroSection movies={featuredMovies} />
 
-        {/* Movie Sections */}
+        {/* Quick Actions */}
+        <QuickActions />
+
+        {/* Content Sections */}
         <div className="space-y-8 px-4">
-          <MovieSection
-            title={language === "ar" ? "آخر التحديثات" : "Latest Updates"}
+          <ContentCarousel
+            title={language === "ar" ? "🔥 الرائج الآن" : "🔥 Trending Now"}
             movies={trendingMovies}
-            showViewAll
+            variant="trending"
           />
 
-          <MovieSection
-            title={language === "ar" ? "الأكثر مشاهدة" : "Most Watched"}
+          <ContentCarousel
+            title={language === "ar" ? "⭐ الأكثر شعبية" : "⭐ Most Popular"}
             movies={popularMovies}
-            showViewAll
+            variant="popular"
           />
 
-          <MovieSection title={language === "ar" ? "قريباً" : "Coming Soon"} movies={upcomingMovies} showViewAll />
+          <ContentCarousel
+            title={language === "ar" ? "🆕 إصدارات جديدة" : "🆕 New Releases"}
+            movies={newReleases}
+            variant="new"
+          />
         </div>
       </main>
 
-      <BottomNavigation />
+      <BottomTabBar />
     </div>
   )
 }

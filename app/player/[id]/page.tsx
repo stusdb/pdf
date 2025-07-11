@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import { LoadingSpinner } from "@/components/loading-spinner"
+import { LoadingScreen } from "@/components/loading-screen"
 import type { Movie } from "@/types/movie"
 import { getMovieById } from "@/lib/api"
 import { getVideoLink } from "@/lib/video-links"
@@ -18,9 +18,9 @@ import {
   Maximize,
   Minimize,
   Settings,
-  Download,
   RotateCcw,
   RotateCw,
+  MoreVertical,
 } from "lucide-react"
 
 export default function PlayerPage() {
@@ -41,6 +41,7 @@ export default function PlayerPage() {
   const [showControls, setShowControls] = useState(true)
   const [playbackRate, setPlaybackRate] = useState(1)
   const [quality, setQuality] = useState("1080p")
+  const [showSettings, setShowSettings] = useState(false)
 
   const movieId = params.id as string
 
@@ -195,15 +196,15 @@ export default function PlayerPage() {
   }
 
   if (loading) {
-    return <LoadingSpinner />
+    return <LoadingScreen />
   }
 
   if (!movie) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center text-white">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center text-foreground">
           <h2 className="text-2xl font-bold mb-2">Movie Not Found</h2>
-          <p className="text-gray-400">The requested movie could not be found.</p>
+          <p className="text-muted-foreground">The requested movie could not be found.</p>
         </div>
       </div>
     )
@@ -217,8 +218,8 @@ export default function PlayerPage() {
     <div
       ref={containerRef}
       className="relative w-full h-screen bg-black overflow-hidden"
-      onMouseMove={() => setShowControls(true)}
       onTouchStart={() => setShowControls(true)}
+      onMouseMove={() => setShowControls(true)}
     >
       {/* Video Element */}
       <video
@@ -228,6 +229,8 @@ export default function PlayerPage() {
         poster={movie.backdrop_url}
         onClick={togglePlay}
         onDoubleClick={toggleFullscreen}
+        playsInline
+        preload="metadata"
       />
 
       {/* Controls Overlay */}
@@ -238,21 +241,26 @@ export default function PlayerPage() {
       >
         {/* Top Bar */}
         <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-white hover:bg-white/20">
-              <ArrowLeft className="h-6 w-6" />
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="text-white hover:bg-white/20 w-10 h-10"
+            >
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-white font-semibold text-lg">{title}</h1>
+            <h1 className="text-white font-semibold text-lg line-clamp-1">{title}</h1>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
-              <Download className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
-              <Settings className="h-5 w-5" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSettings(!showSettings)}
+            className="text-white hover:bg-white/20 w-10 h-10"
+          >
+            <MoreVertical className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Center Play Button */}
@@ -261,7 +269,7 @@ export default function PlayerPage() {
             <Button
               onClick={togglePlay}
               size="lg"
-              className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
+              className="w-20 h-20 rounded-full bg-green-500/90 backdrop-blur-sm hover:bg-green-600 text-white shadow-2xl"
             >
               <Play className="h-10 w-10 fill-current ml-1" />
             </Button>
@@ -272,7 +280,16 @@ export default function PlayerPage() {
         <div className="absolute bottom-0 left-0 right-0 p-4 space-y-4">
           {/* Progress Bar */}
           <div className="space-y-2">
-            <Slider value={[currentTime]} max={duration} step={1} onValueChange={handleSeek} className="w-full" />
+            <Slider
+              value={[currentTime]}
+              max={duration}
+              step={1}
+              onValueChange={handleSeek}
+              className="w-full"
+              style={{
+                background: "rgba(255, 255, 255, 0.2)",
+              }}
+            />
             <div className="flex justify-between text-white text-sm">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
@@ -283,7 +300,12 @@ export default function PlayerPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               {/* Play/Pause */}
-              <Button variant="ghost" size="icon" onClick={togglePlay} className="text-white hover:bg-white/20">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={togglePlay}
+                className="text-white hover:bg-white/20 w-12 h-12"
+              >
                 {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 fill-current" />}
               </Button>
 
@@ -292,20 +314,30 @@ export default function PlayerPage() {
                 variant="ghost"
                 size="icon"
                 onClick={() => skipTime(-10)}
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 w-10 h-10"
               >
                 <RotateCcw className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => skipTime(10)} className="text-white hover:bg-white/20">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => skipTime(10)}
+                className="text-white hover:bg-white/20 w-10 h-10"
+              >
                 <RotateCw className="h-5 w-5" />
               </Button>
 
               {/* Volume */}
               <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="icon" onClick={toggleMute} className="text-white hover:bg-white/20">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleMute}
+                  className="text-white hover:bg-white/20 w-10 h-10"
+                >
                   {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
                 </Button>
-                <div className="w-20">
+                <div className="w-16">
                   <Slider
                     value={[isMuted ? 0 : volume]}
                     max={1}
@@ -317,40 +349,72 @@ export default function PlayerPage() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              {/* Playback Speed */}
-              <select
-                value={playbackRate}
-                onChange={(e) => changePlaybackRate(Number(e.target.value))}
-                className="bg-white/20 text-white border border-white/30 rounded px-2 py-1 text-sm"
+            <div className="flex items-center space-x-3">
+              {/* Settings */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSettings(!showSettings)}
+                className="text-white hover:bg-white/20 w-10 h-10"
               >
-                <option value={0.5}>0.5x</option>
-                <option value={0.75}>0.75x</option>
-                <option value={1}>1x</option>
-                <option value={1.25}>1.25x</option>
-                <option value={1.5}>1.5x</option>
-                <option value={2}>2x</option>
-              </select>
-
-              {/* Quality */}
-              <select
-                value={quality}
-                onChange={(e) => setQuality(e.target.value)}
-                className="bg-white/20 text-white border border-white/30 rounded px-2 py-1 text-sm"
-              >
-                <option value="480p">480p</option>
-                <option value="720p">720p</option>
-                <option value="1080p">1080p</option>
-                <option value="4K">4K</option>
-              </select>
+                <Settings className="h-5 w-5" />
+              </Button>
 
               {/* Fullscreen */}
-              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-white hover:bg-white/20">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className="text-white hover:bg-white/20 w-10 h-10"
+              >
                 {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className="absolute bottom-20 right-4 bg-black/90 backdrop-blur-md rounded-xl p-4 space-y-4 min-w-[200px]">
+            {/* Playback Speed */}
+            <div className="space-y-2">
+              <h4 className="text-white font-semibold text-sm">
+                {language === "ar" ? "سرعة التشغيل" : "Playback Speed"}
+              </h4>
+              <div className="grid grid-cols-3 gap-2">
+                {[0.5, 1, 1.5, 2].map((rate) => (
+                  <Button
+                    key={rate}
+                    variant={playbackRate === rate ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => changePlaybackRate(rate)}
+                    className="text-xs"
+                  >
+                    {rate}x
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quality */}
+            <div className="space-y-2">
+              <h4 className="text-white font-semibold text-sm">{language === "ar" ? "الجودة" : "Quality"}</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {["720p", "1080p", "4K"].map((q) => (
+                  <Button
+                    key={q}
+                    variant={quality === q ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setQuality(q)}
+                    className="text-xs"
+                  >
+                    {q}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
